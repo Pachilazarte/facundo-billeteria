@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auditoría de Gastos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-glass: rgba(30, 41, 59, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.3);
+      --positive: #34d399;
+      --negative: #f87171;
+    }
+    
+    * {
+      box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif;
+    }
+    
+    body {
+      background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh;
+      background-image: radial-gradient(circle at 50% 0%, var(--accent-glow) 0%, transparent 50%);
+      padding: 20px;
+    }
+    
+    .container { max-width: 600px; margin: 0 auto; }
+    
+    header { text-align: center; padding-top: 10px; margin-bottom: 20px; }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    
+    .glass-card {
+      background: var(--bg-glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px;
+      margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    
+    .total-amount {
+      font-size: 2.5rem; font-weight: 700; color: var(--accent);
+      text-align: center; margin: 10px 0; text-shadow: 0 0 20px var(--accent-glow);
+    }
+    .total-label {
+      text-align: center; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    
+    /* Filtros */
+    .filters-row {
+      display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;
+    }
+    .filter-select {
+      flex: 1; min-width: 100px; background: rgba(0,0,0,0.2); color: var(--text-main);
+      border: 1px solid var(--glass-border); border-radius: 8px; padding: 8px; font-size: 0.85rem;
+      outline: none;
+    }
+    .filter-select option { background: var(--bg-dark); color: var(--text-main); }
+    
+    h2 { font-size: 1.1rem; margin-bottom: 15px; font-weight: 600; color: var(--text-main); }
+    
+    .movement-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
+    .movement-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+    }
+    .mov-info { display: flex; flex-direction: column; }
+    .mov-concepto { font-weight: 500; font-size: 0.9rem; }
+    .mov-tags { display: flex; gap: 5px; margin-top: 4px; }
+    .mov-tag {
+      font-size: 0.65rem; color: var(--text-muted); padding: 2px 6px;
+      background: rgba(255,255,255,0.1); border-radius: 9999px;
+    }
+    .mov-amount { font-weight: 600; }
+    .amount-neg { color: var(--negative); }
+    .amount-pos { color: var(--positive); }
+    .mov-date { font-size: 0.7rem; color: var(--text-muted); text-align: right; margin-top: 4px; }
+    
+    #chart-container { position: relative; height: 220px; width: 100%; }
+    
+    .loader { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid rgba(56, 189, 248, 0.3);
+      border-radius: 50%; border-top-color: var(--accent); animation: spin 1s ease-in-out infinite; margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+  <div id="loader" class="loader">
+    <div class="spinner"></div>
+    <div class="total-label">Cargando datos en tiempo real...</div>
+  </div>
+
+  <div id="app" class="container hidden">
+    <header>
+      <h1>Auditoría de Gastos</h1>
+    </header>
+    
+    <div class="glass-card">
+      <div class="filters-row">
+        <select id="filterMes" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">Todos los meses</option>
+        </select>
+        <select id="filterDia" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">Todos los días</option>
+        </select>
+        <select id="filterMetodo" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">Todos los bancos</option>
+        </select>
+        <select id="filterCategoria" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">Todas las categorías</option>
+        </select>
+      </div>
+      
+      <div class="total-label">Volumen (Filtro Actual)</div>
+      <div class="total-amount" id="totalMonto">$0</div>
+    </div>
+    
+    <div class="glass-card">
+      <h2>Distribución por Banco</h2>
+      <div id="chart-container">
+        <canvas id="myChart"></canvas>
+      </div>
+    </div>
+    
+    <div class="glass-card" id="cardPedidos" style="display:none; border-color: rgba(249, 115, 22, 0.3);">
+      <h2 style="color: #fdba74;">📌 Próximos Vencimientos / Pedidos</h2>
+      <div class="movement-list" id="listaPedidos"></div>
+    </div>
+
+    <div class="glass-card">
+      <h2>Movimientos</h2>
+      <div class="movement-list" id="listaMovimientos"></div>
+    </div>
+  </div>
+
+  <script>
+    let allData = [];
+    let myChartInstance = null;
+
+    // Colores específicos solicitados por el usuario
+    const BANK_COLORS = {
+      'BNA': '#3b82f6', // Azul
+      'Personal Pay': '#7dd3fc', // Celeste pastel
+      'Naranja': '#f97316', // Naranja
+      'BIND': '#eab308', // Amarillo
+      'Efectivo': '#22c55e', // Verde
+      'Desconocido': '#94a3b8' // Gris
+    };
+
+    function formatearDinero(monto) {
+      // Formato es-AR (Puntos para miles, coma para decimales)
+      // Si tiene decimales mostramos 2. Si es entero, mostramos 0.
+      const decimals = (monto % 1 !== 0) ? 2 : 0;
+      return new Intl.NumberFormat('es-AR', {
+        style: 'currency', 
+        currency: 'ARS', 
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: 2
+      }).format(monto);
+    }
+
+    google.script.run
+      .withSuccessHandler(onDataLoaded)
+      .withFailureHandler(showError)
+      .getDashboardData();
+
+    function onDataLoaded(data) {
+      document.getElementById('loader').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      
+      allData = data.allData;
+      populateFilters();
+      applyFilters();
+    }
+    
+    function populateFilters() {
+      const meses = new Set();
+      const dias = new Set();
+      const metodos = new Set();
+      const categorias = new Set();
+      
+      allData.forEach(item => {
+        if (item.mesIso) meses.add(item.mesIso);
+        if (item.fechaDisplay) dias.add(item.fechaDisplay.split(' ')[0]); // Extraer dd/MM
+        if (item.metodo) metodos.add(item.metodo);
+        if (item.categoria) categorias.add(item.categoria);
+      });
+      
+      const filterMes = document.getElementById('filterMes');
+      Array.from(meses).sort().reverse().forEach(m => {
+        const option = document.createElement('option');
+        option.value = m; option.innerText = m;
+        filterMes.appendChild(option);
+      });
+      if(meses.size > 0) filterMes.selectedIndex = 1; // Preseleccionar mes actual
+
+      const filterDia = document.getElementById('filterDia');
+      Array.from(dias).sort().reverse().forEach(d => {
+        const option = document.createElement('option');
+        option.value = d; option.innerText = d;
+        filterDia.appendChild(option);
+      });
+
+      const filterMetodo = document.getElementById('filterMetodo');
+      Array.from(metodos).sort().forEach(m => {
+        const option = document.createElement('option');
+        option.value = m; option.innerText = m;
+        filterMetodo.appendChild(option);
+      });
+
+      const filterCategoria = document.getElementById('filterCategoria');
+      Array.from(categorias).sort().forEach(c => {
+        const option = document.createElement('option');
+        option.value = c; option.innerText = c;
+        filterCategoria.appendChild(option);
+      });
+    }
+
+    function applyFilters() {
+      const fMes = document.getElementById('filterMes').value;
+      const fDia = document.getElementById('filterDia').value;
+      const fMetodo = document.getElementById('filterMetodo').value;
+      const fCategoria = document.getElementById('filterCategoria').value;
+      
+      const filtered = allData.filter(item => {
+        return (fMes === 'ALL' || item.mesIso === fMes) &&
+               (fDia === 'ALL' || item.fechaDisplay.startsWith(fDia)) &&
+               (fMetodo === 'ALL' || item.metodo === fMetodo) &&
+               (fCategoria === 'ALL' || item.categoria === fCategoria);
+      });
+      
+      renderDashboard(filtered);
+    }
+
+    function renderDashboard(dataArray) {
+      let total = 0;
+      const porBanco = {};
+      
+      const pedidosList = [];
+      const movimientosList = [];
+
+      dataArray.forEach(item => {
+        if (item.concepto.toLowerCase().includes("pedido de pago")) {
+          pedidosList.push(item);
+          return; // No sumar al volumen total ni al gráfico
+        }
+
+        const isIngreso = item.concepto.toLowerCase().includes("ingreso de");
+        const monto = item.monto;
+        
+        total += isIngreso ? monto : -monto;
+        
+        // Gráfico agrupado por Banco en lugar de categoría
+        if (!isIngreso) {
+          porBanco[item.metodo] = (porBanco[item.metodo] || 0) + monto;
+        }
+        movimientosList.push(item);
+      });
+      
+      const totalEl = document.getElementById('totalMonto');
+      totalEl.innerText = formatearDinero(Math.abs(total));
+      totalEl.style.color = total >= 0 ? 'var(--positive)' : 'var(--negative)';
+      
+      // Renderizar Pedidos de Pago
+      const cardPedidos = document.getElementById('cardPedidos');
+      const listaP = document.getElementById('listaPedidos');
+      if (pedidosList.length === 0) {
+        cardPedidos.style.display = 'none';
+      } else {
+        cardPedidos.style.display = 'block';
+        listaP.innerHTML = pedidosList.map(mov => {
+          return \`
+          <div class="movement-item" style="border-left: 3px solid #fdba74;">
+            <div class="mov-info">
+              <span class="mov-concepto" style="color:#fdba74;">\${mov.concepto}</span>
+              <div class="mov-tags">
+                <span class="mov-tag" style="border:1px solid rgba(255,255,255,0.2)">\${mov.metodo}</span>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div class="mov-amount" style="color:#fdba74;">\${formatearDinero(mov.monto)}</div>
+              <div class="mov-date">\${mov.fechaDisplay}</div>
+            </div>
+          </div>
+        \`}).join('');
+      }
+
+      // Renderizar Movimientos Normales
+      const lista = document.getElementById('listaMovimientos');
+      if (movimientosList.length === 0) {
+        lista.innerHTML = '<div class="total-label" style="padding:20px">No hay movimientos.</div>';
+      } else {
+        lista.innerHTML = movimientosList.map(mov => {
+          const isIngreso = mov.concepto.toLowerCase().includes("ingreso de");
+          const sign = isIngreso ? '+' : '-';
+          const colorClass = isIngreso ? 'amount-pos' : 'amount-neg';
+          
+          return \`
+          <div class="movement-item">
+            <div class="mov-info">
+              <span class="mov-concepto">${mov.concepto}</span>
+              <div class="mov-tags">
+                <span class="mov-tag">${mov.categoria}</span>
+                <span class="mov-tag" style="border:1px solid rgba(255,255,255,0.2)">${mov.metodo}</span>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div class="mov-amount ${colorClass}">${sign}${formatearDinero(mov.monto)}</div>
+              <div class="mov-date">${mov.fechaDisplay}</div>
+            </div>
+          </div>
+        `}).join('');
+      }
+      
+      renderChart(porBanco);
+    }
+    
+    function renderChart(porBanco) {
+      const labels = Object.keys(porBanco);
+      const values = Object.values(porBanco);
+      
+      const ctx = document.getElementById('myChart').getContext('2d');
+      if (myChartInstance) myChartInstance.destroy();
+      
+      if (labels.length === 0) return;
+
+      myChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            // Mapeamos los colores con el diccionario, si no existe usamos gris
+            backgroundColor: labels.map(label => BANK_COLORS[label] || '#94a3b8'),
+            borderWidth: 0, hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right', labels: { color: '#f8fafc', font: { size: 10 }, boxWidth: 10 } }
+          },
+          cutout: '75%'
+        }
+      });
+    }
+
+    function showError(error) {
+      document.getElementById('loader').innerHTML = `<div class="total-label" style="color:#f87171">Error: ${error.message}</div>`;
+    }
+  </script>
+</body>
+</html>
