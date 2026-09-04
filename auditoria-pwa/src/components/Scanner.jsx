@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { APPS_SCRIPT_URL } from '../config';
 
 export default function Scanner({ file, onScanComplete, onCancel }) {
   const [preview, setPreview] = useState(null);
@@ -19,7 +20,7 @@ export default function Scanner({ file, onScanComplete, onCancel }) {
     try {
       const base64 = await toBase64(file);
       // Enviar directamente a Google Apps Script usando text/plain para evitar CORS preflight
-      const gasResponse = await fetch(import.meta.env.VITE_APPS_SCRIPT_URL, {
+      const gasResponse = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8',

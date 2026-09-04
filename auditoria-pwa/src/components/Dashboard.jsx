@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
+import { APPS_SCRIPT_URL } from '../config';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -36,18 +37,20 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    const url = import.meta.env.VITE_APPS_SCRIPT_URL;
-    fetch(url + "?action=getData")
-      .then(res => res.json())
-      .then(data => {
+    async function fetchData() {
+      try {
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=getData`);
+        if (!response.ok) throw new Error('Error al conectar con la base de datos');
+        const data = await response.json();
         setAllData(data.allData);
         populateOptions(data.allData);
         setLoading(false);
-      })
-      .catch(err => {
+      } catch (err) {
         setError(err.message);
         setLoading(false);
-      });
+      }
+    }
+    fetchData();
   }, []);
 
   const populateOptions = (data) => {
