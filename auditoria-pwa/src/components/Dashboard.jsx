@@ -6,12 +6,21 @@ import { APPS_SCRIPT_URL } from '../config';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const BANK_COLORS = {
-  'BNA': '#3b82f6',
-  'Personal Pay': '#7dd3fc',
-  'Naranja': '#f97316',
-  'BIND': '#eab308',
-  'Efectivo': '#22c55e',
+  'BNA': 'var(--bank-bna)',
+  'Personal Pay': 'var(--bank-personal)',
+  'Naranja': 'var(--bank-naranja)',
+  'BIND': 'var(--bank-bind)',
+  'Efectivo': 'var(--bank-efectivo)',
   'Desconocido': '#94a3b8'
+};
+
+const BANK_INITIALS = {
+  'BNA': 'BN',
+  'Personal Pay': 'PP',
+  'Naranja': 'NX',
+  'BIND': 'BD',
+  'Efectivo': '💵',
+  'Desconocido': '?'
 };
 
 function formatearDinero(monto) {
@@ -69,9 +78,39 @@ export default function Dashboard() {
     });
   };
 
-  if (loading) return <div className="loader"><div className="spinner"></div><div className="total-label">Cargando...</div></div>;
-  if (error) return <div className="total-label" style={{color:'#f87171'}}>Error: {error}</div>;
+  // --- SKELETON LOADER ---
+  if (loading) {
+    return (
+      <div>
+        <header>
+          <h1>Auditoría</h1>
+          <p style={{color: 'var(--text-muted)'}}>Sincronizando gastos...</p>
+        </header>
+        
+        <div className="glass-card">
+          <div className="skeleton skeleton-text" style={{width: '60px', marginBottom: '16px'}}></div>
+          <div className="skeleton skeleton-text" style={{height: '50px', width: '200px'}}></div>
+        </div>
 
+        <div className="glass-card" style={{height: '250px'}}>
+          <div className="skeleton skeleton-text" style={{width: '100px', marginBottom: '24px'}}></div>
+          <div className="skeleton" style={{height: '150px', width: '150px', borderRadius: '50%', margin: '0 auto'}}></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{textAlign: 'center', paddingTop: '40px'}}>
+        <div style={{fontSize: '40px', marginBottom: '16px'}}>⚠️</div>
+        <h2>Oops, algo falló</h2>
+        <p style={{color: 'var(--negative)'}}>{error}</p>
+      </div>
+    );
+  }
+
+  // --- MAIN DASHBOARD ---
   const filtered = allData.filter(item => {
     return (filters.mes === 'ALL' || item.mesIso === filters.mes) &&
            (filters.dia === 'ALL' || item.fechaDisplay.startsWith(filters.dia)) &&
@@ -100,56 +139,95 @@ export default function Dashboard() {
     labels: Object.keys(porBanco),
     datasets: [{
       data: Object.values(porBanco),
-      backgroundColor: Object.keys(porBanco).map(k => BANK_COLORS[k] || '#94a3b8'),
-      borderWidth: 0
+      backgroundColor: Object.keys(porBanco).map(k => {
+        // Obtenemos el color crudo de la variable CSS para chartjs
+        if(k === 'BNA') return '#3b82f6';
+        if(k === 'Personal Pay') return '#0ea5e9';
+        if(k === 'Naranja') return '#f97316';
+        if(k === 'BIND') return '#eab308';
+        if(k === 'Efectivo') return '#22c55e';
+        return '#94a3b8';
+      }),
+      borderWidth: 0,
+      hoverOffset: 4
     }]
+  };
+
+  const chartOptions = {
+    maintainAspectRatio: false, 
+    cutout: '75%', 
+    plugins: {
+      legend: {
+        position: 'right', 
+        labels: { color: '#f8fafc', font: { family: 'Inter', size: 13 } }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        padding: 12,
+        cornerRadius: 8,
+        titleFont: { size: 14, family: 'Inter' },
+        bodyFont: { size: 14, family: 'Inter' }
+      }
+    }
   };
 
   return (
     <div>
+      <header>
+        <h1>Auditoría</h1>
+      </header>
+
+      {/* FILTROS Y TOTAL */}
       <div className="glass-card">
         <div className="filters-row">
           <select value={filters.mes} onChange={e => setFilters({...filters, mes: e.target.value})} className="filter-select">
-            <option value="ALL">Todos los meses</option>
+            <option value="ALL">Meses</option>
             {filterOptions.meses.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
           <select value={filters.dia} onChange={e => setFilters({...filters, dia: e.target.value})} className="filter-select">
-            <option value="ALL">Todos los días</option>
+            <option value="ALL">Días</option>
             {filterOptions.dias.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
           <select value={filters.metodo} onChange={e => setFilters({...filters, metodo: e.target.value})} className="filter-select">
-            <option value="ALL">Todos los bancos</option>
+            <option value="ALL">Bancos</option>
             {filterOptions.metodos.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
           <select value={filters.categoria} onChange={e => setFilters({...filters, categoria: e.target.value})} className="filter-select">
-            <option value="ALL">Todas las categorías</option>
+            <option value="ALL">Categorías</option>
             {filterOptions.categorias.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <div className="total-label">Volumen</div>
-        <div className="total-amount" style={{color: total >= 0 ? 'var(--positive)' : 'var(--negative)'}}>{formatearDinero(Math.abs(total))}</div>
+        <div className="total-label">Volumen Total</div>
+        <div className="total-amount" style={{color: total >= 0 ? 'var(--text-main)' : 'var(--negative)'}}>
+          {formatearDinero(Math.abs(total))}
+        </div>
       </div>
       
-      <div className="glass-card" style={{height: '250px'}}>
-        <h2>Distribución</h2>
-        <Doughnut data={chartData} options={{maintainAspectRatio: false, cutout: '75%', plugins: {legend: {position:'right', labels:{color:'#f8fafc'}}}} } />
-      </div>
+      {/* GRAFICO */}
+      {Object.keys(porBanco).length > 0 && (
+        <div className="glass-card" style={{height: '280px'}}>
+          <h2>Distribución</h2>
+          <Doughnut data={chartData} options={chartOptions} />
+        </div>
+      )}
 
+      {/* PEDIDOS */}
       {pedidosList.length > 0 && (
-        <div className="glass-card" style={{borderColor: 'rgba(249, 115, 22, 0.3)'}}>
-          <h2 style={{color: '#fdba74'}}>📌 Próximos Vencimientos / Pedidos</h2>
+        <div className="glass-card" style={{borderColor: 'rgba(245, 158, 11, 0.4)', background: 'rgba(245, 158, 11, 0.05)'}}>
+          <h2 style={{color: 'var(--warning)'}}>Próximos Vencimientos</h2>
           <div className="movement-list">
             {pedidosList.map((mov, idx) => (
-              <div key={idx} className="movement-item" style={{borderLeft: '3px solid #fdba74'}}>
-                <div>
-                  <div style={{fontWeight: 500, color:'#fdba74'}}>{mov.concepto}</div>
-                  <div style={{fontSize: '0.7rem', color: '#94a3b8'}}>{mov.categoria} • {mov.metodo}</div>
+              <div key={idx} className="movement-item">
+                <div className="movement-icon" style={{background: 'var(--warning)', color: '#000'}}>⚠️</div>
+                <div className="movement-details">
+                  <div className="movement-title">{mov.concepto}</div>
+                  <div className="movement-subtitle">{mov.categoria} • {mov.metodo}</div>
                 </div>
-                <div style={{textAlign: 'right'}}>
-                  <div style={{color: '#fdba74'}}>
+                <div className="movement-right">
+                  <div className="movement-amount" style={{color: 'var(--warning)'}}>
                     {formatearDinero(mov.monto)}
                   </div>
-                  <div style={{fontSize: '0.7rem', color: '#94a3b8'}}>{mov.fechaDisplay}</div>
+                  <div className="movement-date">{mov.fechaDisplay}</div>
                 </div>
               </div>
             ))}
@@ -157,26 +235,40 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* HISTORIAL */}
       <div className="glass-card">
-        <h2>Movimientos</h2>
+        <h2>Historial de Movimientos</h2>
         <div className="movement-list">
-          {movimientosList.length === 0 && <div className="total-label">No hay movimientos.</div>}
-          {movimientosList.map((mov, idx) => (
-            <div key={idx} className="movement-item">
-              <div>
-                <div style={{fontWeight: 500}}>{mov.concepto}</div>
-                <div style={{fontSize: '0.7rem', color: '#94a3b8'}}>{mov.categoria} • {mov.metodo}</div>
-              </div>
-              <div style={{textAlign: 'right'}}>
-                <div style={{color: mov.concepto.toLowerCase().includes("ingreso") ? 'var(--positive)' : 'var(--negative)'}}>
-                  {formatearDinero(mov.monto)}
+          {movimientosList.length === 0 && <div className="total-label" style={{marginTop: '16px'}}>No hay movimientos.</div>}
+          {movimientosList.map((mov, idx) => {
+            const isIngreso = mov.concepto.toLowerCase().includes("ingreso");
+            const bankColor = BANK_COLORS[mov.metodo] || BANK_COLORS['Desconocido'];
+            const initials = BANK_INITIALS[mov.metodo] || BANK_INITIALS['Desconocido'];
+
+            return (
+              <div key={idx} className="movement-item">
+                <div className="movement-icon" style={{background: bankColor}}>
+                  {initials}
                 </div>
-                <div style={{fontSize: '0.7rem', color: '#94a3b8'}}>{mov.fechaDisplay}</div>
+                <div className="movement-details">
+                  <div className="movement-title">{mov.concepto}</div>
+                  <div className="movement-subtitle">
+                    <span className="badge">{mov.categoria}</span>
+                    {mov.metodo}
+                  </div>
+                </div>
+                <div className="movement-right">
+                  <div className="movement-amount" style={{color: isIngreso ? 'var(--positive)' : 'var(--text-main)'}}>
+                    {isIngreso ? '+' : '-'}{formatearDinero(mov.monto)}
+                  </div>
+                  <div className="movement-date">{mov.fechaDisplay}</div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+
     </div>
   );
 }

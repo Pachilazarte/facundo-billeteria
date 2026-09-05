@@ -54,31 +54,67 @@ export default function Scanner({ file, onScanComplete, onCancel }) {
   };
 
   return (
-    <div className="glass-card scanner-card">
-      <h2 style={{color: '#38bdf8'}}>📷 Comprobante Recibido</h2>
+    <div className="glass-card" style={{ textAlign: 'center', marginTop: '20px' }}>
+      <h2 style={{ marginBottom: '16px' }}>Analizar Comprobante</h2>
       
       {preview && (
-        <div style={{ margin: '20px 0', textAlign: 'center' }}>
-          <img src={preview} alt="Comprobante" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px' }} />
+        <div style={{ marginBottom: '24px' }}>
+          <img 
+            src={preview} 
+            alt="Comprobante" 
+            style={{ 
+              maxWidth: '100%', 
+              maxHeight: '300px', 
+              borderRadius: '16px',
+              border: '1px solid var(--glass-border)',
+              boxShadow: 'var(--glass-shadow)'
+            }} 
+          />
         </div>
       )}
 
-      {error && <div style={{ color: '#f87171', marginBottom: '15px' }}>{error}</div>}
+      {error && (
+        <div style={{ color: 'var(--negative)', marginBottom: '20px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
+          {error}
+        </div>
+      )}
 
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
         <button 
-          onClick={handleScan} 
+          onClick={onCancel}
           disabled={isScanning}
-          style={{ flex: 1, padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}
-        >
-          {isScanning ? 'Analizando con IA...' : 'Extraer y Guardar'}
-        </button>
-        <button 
-          onClick={onCancel} 
-          disabled={isScanning}
-          style={{ padding: '12px', background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+          style={{
+            padding: '12px 24px',
+            background: 'transparent',
+            border: '1px solid var(--text-muted)',
+            color: 'var(--text-main)',
+            borderRadius: '24px',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-family)',
+            fontWeight: 500
+          }}
         >
           Cancelar
+        </button>
+        
+        <button 
+          onClick={handleScan}
+          disabled={isScanning}
+          style={{
+            padding: '12px 24px',
+            background: 'linear-gradient(135deg, var(--accent-primary) 0%, #d946ef 100%)',
+            border: 'none',
+            color: 'white',
+            borderRadius: '24px',
+            cursor: isScanning ? 'not-allowed' : 'pointer',
+            fontWeight: 600,
+            fontFamily: 'var(--font-family)',
+            boxShadow: '0 4px 15px var(--accent-glow)',
+            opacity: isScanning ? 0.7 : 1,
+            transition: 'transform 0.2s ease'
+          }}
+        >
+          {isScanning ? 'Analizando con IA...' : 'Analizar y Guardar'}
         </button>
       </div>
     </div>

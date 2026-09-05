@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import Scanner from './components/Scanner';
-import './App.css'; // Moveremos los estilos globales aquí
 
 function App() {
   const [sharedFile, setSharedFile] = useState(null);
@@ -58,7 +57,25 @@ function App() {
           onCancel={() => setSharedFile(null)} 
         />
       ) : (
-        <Dashboard />
+        <>
+          <Dashboard />
+          <div className="fab-container">
+            <label className="fab-button" htmlFor="manual-scan" title="Escanear Gasto">
+              +
+            </label>
+            <input 
+              type="file" 
+              id="manual-scan" 
+              accept="image/*" 
+              style={{ display: 'none' }} 
+              onChange={(e) => {
+                if(e.target.files && e.target.files[0]) {
+                  setSharedFile(e.target.files[0]);
+                }
+              }} 
+            />
+          </div>
+        </>
       )}
     </div>
   );
