@@ -104,6 +104,11 @@ function responseJson(data, status) {
 
 // Responde si alguien entra por GET al webapp
 function doGet(e) {
+  if (e.parameter.action === 'getData') {
+    const data = getDashboardData();
+    return responseJson(data, 200);
+  }
+  
   // Retornamos la interfaz web del Dashboard
   const html = HtmlService.createHtmlOutputFromFile('Index');
   html.setTitle("Auditoría de Gastos");
