@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Scanner from './components/Scanner';
+import Dashboard from './components/Dashboard';
 
 function App() {
   const [sharedFile, setSharedFile] = useState(null);
@@ -81,7 +82,6 @@ function App() {
   );
 }
 
-import Dashboard from './components/Dashboard';
 
 // Export App
 export default App;
