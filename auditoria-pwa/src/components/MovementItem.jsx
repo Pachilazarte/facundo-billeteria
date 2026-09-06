@@ -19,6 +19,14 @@ const BANK_ICONS = {
   'Efectivo': Wallet
 };
 
+const BANK_IMAGES = {
+  'BNA': '/img/LOGOBNA.webp',
+  'Naranja': '/img/NaranjaX-logo.svg.webp',
+  'Naranja X': '/img/NaranjaX-logo.svg.webp',
+  'Personal Pay': '/img/personalpay.webp',
+  'BIND': '/img/logoactualizado-bi.webp'
+};
+
 function formatearDinero(monto) {
   const decimals = (monto % 1 !== 0) ? 2 : 0;
   return new Intl.NumberFormat('es-AR', {
@@ -35,6 +43,7 @@ export default function MovementItem({ mov, onCategoryClick }) {
   const bgStyle = { backgroundColor: BANK_COLORS[mov.metodo] || 'rgba(255,255,255,0.1)' };
   
   const IconComponent = BANK_ICONS[mov.metodo] || FileText;
+  const imageSrc = BANK_IMAGES[mov.metodo];
 
   // Enhance concepts
   let title = mov.concepto || 'Desconocido';
@@ -50,8 +59,12 @@ export default function MovementItem({ mov, onCategoryClick }) {
 
   return (
     <div className="movement-item">
-      <div className="movement-icon" style={bgStyle}>
-        <IconComponent size={20} color="#fff" />
+      <div className="movement-icon" style={imageSrc ? { backgroundColor: '#fff' } : bgStyle}>
+        {imageSrc ? (
+          <img src={imageSrc} alt={mov.metodo} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '12px' }} />
+        ) : (
+          <IconComponent size={20} color="#fff" />
+        )}
       </div>
       <div className="movement-details">
         <div className="movement-title">{title}</div>
