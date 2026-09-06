@@ -60,18 +60,22 @@ export default function Scanner({ file, onScanComplete, onCancel }) {
       display: 'flex', flexDirection: 'column', padding: '20px'
     }}>
       <h2 style={{ textAlign: 'center', margin: '20px 0', fontSize: '1.5rem', color: 'var(--positive)' }}>Nuevo Comprobante</h2>
-      <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '24px' }}>
+      <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '8px' }}>
         Verificá que la imagen sea legible antes de enviarla a la inteligencia artificial.
+      </p>
+      <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', marginBottom: '24px' }}>
+        💡 Podés pegar una imagen directamente con Ctrl+V (o Cmd+V)
       </p>
       
       {preview && (
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '24px' }}>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '24px', overflow: 'hidden' }}>
           <img 
             src={preview} 
             alt="Comprobante" 
             style={{ 
               maxWidth: '100%', 
-              maxHeight: '50vh', 
+              maxHeight: '100%',
+              objectFit: 'contain',
               borderRadius: '20px',
               border: '2px solid rgba(52, 211, 153, 0.3)',
               boxShadow: '0 10px 30px rgba(52, 211, 153, 0.1)'
