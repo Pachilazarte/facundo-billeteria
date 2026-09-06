@@ -42,7 +42,7 @@ function procesarCorreosBancarios() {
         } 
         // Lógica para Naranja
         else if (sender.toLowerCase().includes("naranja")) {
-          metodo_pago = "Naranja";
+          metodo_pago = "Naranja X";
           const montoMatch = body.match(/\$\s?([0-9.,]+)/);
           if (montoMatch) monto = parseMonto(montoMatch[1]);
           
@@ -115,7 +115,7 @@ function importarHistorico() {
         if (transferenciaMatch) concepto = "Transf: " + transferenciaMatch[1].trim();
         else if (comercioMatch) concepto = comercioMatch[1].trim();
       } else if (sender.toLowerCase().includes("naranja")) {
-        metodo_pago = "Naranja";
+        metodo_pago = "Naranja X";
         const montoMatch = body.match(/\$\s?([0-9.,]+)/);
         if (montoMatch) monto = parseMonto(montoMatch[1]);
         const comercioMatch = body.match(/en\s+(.*?)\s+a\s+las/i);

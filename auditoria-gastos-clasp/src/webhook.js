@@ -22,6 +22,16 @@ function doPost(e) {
       return responseJson({ error: 'Unauthorized' }, 401);
     }
 
+    // SI LA PWA PIDE ACTUALIZAR LA CATEGORÍA DE UN GASTO
+    if (payload.action === "updateCategory" && payload.id && payload.categoria) {
+      const result = updateGastoCategoria(payload.id, payload.categoria);
+      if (result) {
+        return responseJson({ success: true }, 200);
+      } else {
+        return responseJson({ error: 'Gasto no encontrado' }, 404);
+      }
+    }
+
     // SI ES UNA IMAGEN DESDE LA PWA (PROCESAR CON IA)
     if (payload.origen === "pwa_scanner_image" && payload.image) {
       const geminiApiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');

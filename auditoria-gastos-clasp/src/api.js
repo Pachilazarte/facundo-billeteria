@@ -39,3 +39,20 @@ function getDashboardData() {
     saldoEfectivo: saldoEfectivo
   };
 }
+
+function updateGastoCategoria(id, nuevaCategoria) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_GASTOS);
+  if (!sheet) return false;
+  
+  const data = sheet.getDataRange().getValues();
+  // Asumiendo columnas: 1:ID, 2:Fecha, 3:Monto, 4:Concepto, 5:Categoría
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      sheet.getRange(i + 1, 5).setValue(nuevaCategoria);
+      return true;
+    }
+  }
+  return false;
+}
+

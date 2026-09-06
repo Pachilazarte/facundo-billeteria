@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard';
 import Pendientes from './components/Pendientes';
 import Sueldos from './components/Sueldos';
 import { APPS_SCRIPT_URL } from './config';
+import { LayoutDashboard, Clock, Wallet, Plus, Scan } from 'lucide-react';
 
 function App() {
   const [sharedFile, setSharedFile] = useState(null);
@@ -13,27 +14,19 @@ function App() {
   const [appData, setAppData] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState(null);
+  
   useEffect(() => {
-    // 1. Fetch data from Apps Script
     async function fetchData() {
       try {
         const response = await fetch(`${APPS_SCRIPT_URL}?action=getData`);
         if (!response.ok) throw new Error('Error al conectar con la base de datos');
         let rawData = await response.json();
-        console.log('DATOS RECIBIDOS DEL SCRIPT:', rawData);
-
+        
         // Fallback por si la API de GAS sigue en la versión vieja
         if (rawData.allData && !rawData.gastos) {
-          rawData = {
-            gastos: rawData.allData,
-            pendientes: [],
-            efectivo: [],
-            saldoEfectivo: 0,
-            sueldos: []
-          };
+          rawData = { gastos: rawData.allData, pendientes: [], efectivo: [], saldoEfectivo: 0, sueldos: [] };
         }
 
-        // Formatear fechas para que el Dashboard funcione sin importar qué devuelva el backend
         const mapFechas = (arr) => {
           if (!arr) return [];
           return arr.map(item => {
@@ -62,7 +55,6 @@ function App() {
     }
     fetchData();
 
-    // 2. Check for Shared Target
     const params = new URLSearchParams(window.location.search);
     if (params.get('shared') === 'true') {
       const request = indexedDB.open('AuditoriaDB', 1);
@@ -76,7 +68,6 @@ function App() {
           getReq.onsuccess = () => {
             if (getReq.result) {
               setSharedFile(getReq.result);
-              // Limpiamos la URL para no re-trigger si recargan
               window.history.replaceState({}, document.title, "/");
             }
             setIsCheckingShare(false);
@@ -92,11 +83,30 @@ function App() {
     }
   }, []);
 
-
-
   if (isCheckingShare) {
     return <div className="loader"><div className="spinner"></div><div className="total-label">Cargando...</div></div>;
   }
+
+  const handleUpdateCategory = async (id, newCategory) => {
+    // Optimistic update locally
+    const updateInArray = (arr) => arr.map(item => item.id === id ? { ...item, categoria: newCategory } : item);
+    setAppData(prev => ({ ...prev, gastos: updateInArray(prev.gastos) }));
+    
+    // Server request
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          token: "facu_gastos_2026",
+          action: "updateCategory",
+          id: id,
+          categoria: newCategory
+        })
+      });
+    } catch(e) {
+      console.error("Error updating category", e);
+    }
+  };
 
   const renderTab = () => {
     if (loadingData) return <div className="loader"><div className="spinner"></div><div className="total-label">Cargando datos...</div></div>;
@@ -104,40 +114,53 @@ function App() {
 
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard allData={appData.gastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} />;
+        return <Dashboard allData={appData.gastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} onUpdateCategory={handleUpdateCategory} />;
       case 'pendientes':
         return <Pendientes pendientes={appData.pendientes} />;
       case 'sueldos':
         return <Sueldos sueldos={appData.sueldos} />;
       default:
-        return <Dashboard allData={appData.gastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} />;
+        return <Dashboard allData={appData.gastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} onUpdateCategory={handleUpdateCategory} />;
     }
   };
 
   return (
-    <div className="container" style={{ paddingBottom: '80px' }}>
-      <header>
-        <h1>Billetería</h1>
-        <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-muted)' }}>v0.0.2</span>
-      </header>
+    <>
+      <div className="header-bar">
+        <h1 className="header-title">Billetería</h1>
+        <span className="badge">v0.0.3</span>
+      </div>
 
-      {sharedFile ? (
-        <Scanner 
-          file={sharedFile} 
-          onScanComplete={(data) => {
-            alert(`¡Guardado exitosamente!\nMonto: ${data.monto}\nConcepto: ${data.concepto}`);
-            setSharedFile(null);
-            window.location.reload(); 
-          }} 
-          onCancel={() => setSharedFile(null)} 
-        />
-      ) : (
-        <>
-          {renderTab()}
+      <div className="content-area">
+        {sharedFile ? (
+          <Scanner 
+            file={sharedFile} 
+            onScanComplete={(data) => {
+              alert(`¡Guardado exitosamente!\nMonto: ${data.monto}\nConcepto: ${data.concepto}`);
+              setSharedFile(null);
+              window.location.reload(); 
+            }} 
+            onCancel={() => setSharedFile(null)} 
+          />
+        ) : (
+          renderTab()
+        )}
+      </div>
+
+      {!sharedFile && (
+        <nav className="bottom-nav">
+          <button className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
+            <LayoutDashboard size={22} />
+            <span>Resumen</span>
+          </button>
+          <button className={`nav-btn ${activeTab === 'pendientes' ? 'active' : ''}`} onClick={() => setActiveTab('pendientes')}>
+            <Clock size={22} />
+            <span>Pendientes</span>
+          </button>
           
-          <div className="fab-container" style={{ bottom: '90px' }}>
-            <label className="fab-button" htmlFor="manual-scan" title="Escanear Gasto">
-              +
+          <div className="nav-fab-wrap">
+            <label className="nav-fab" htmlFor="manual-scan" title="Escanear Gasto">
+              <Scan size={24} color="#000" />
             </label>
             <input 
               type="file" 
@@ -152,23 +175,14 @@ function App() {
             />
           </div>
 
-          <nav className="bottom-nav">
-            <button className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-              📊 Dashboard
-            </button>
-            <button className={`nav-btn ${activeTab === 'pendientes' ? 'active' : ''}`} onClick={() => setActiveTab('pendientes')}>
-              ⏳ Pendientes
-            </button>
-            <button className={`nav-btn ${activeTab === 'sueldos' ? 'active' : ''}`} onClick={() => setActiveTab('sueldos')}>
-              💰 Sueldos
-            </button>
-          </nav>
-        </>
+          <button className={`nav-btn ${activeTab === 'sueldos' ? 'active' : ''}`} onClick={() => setActiveTab('sueldos')}>
+            <Wallet size={22} />
+            <span>Sueldos</span>
+          </button>
+        </nav>
       )}
-    </div>
+    </>
   );
 }
 
-
-// Export App
 export default App;
