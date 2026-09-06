@@ -27,9 +27,10 @@ function App() {
         
         // Fallback por si la API de GAS sigue en la versión vieja
         if (rawData.allData && !rawData.gastos) {
-          rawData = { gastos: rawData.allData, pendientes: [], efectivo: [], saldoEfectivo: 0, sueldos: [], apodos: [] };
+          rawData = { gastos: rawData.allData, pendientes: [], efectivo: [], saldoEfectivo: 0, sueldos: [], apodos: [], bonos: [] };
         }
         if (!rawData.apodos) rawData.apodos = [];
+        if (!rawData.bonos) rawData.bonos = [];
 
         const mapFechas = (arr) => {
           if (!arr) return [];
@@ -49,6 +50,7 @@ function App() {
         rawData.pendientes = mapFechas(rawData.pendientes);
         rawData.efectivo = mapFechas(rawData.efectivo);
         rawData.sueldos = mapFechas(rawData.sueldos);
+        rawData.bonos = mapFechas(rawData.bonos);
 
         setAppData(rawData);
         setLoadingData(false);
@@ -178,7 +180,7 @@ function App() {
       case 'pendientes':
         return <Pendientes pendientes={allPendientes} onMovementClick={setSelectedMovement} apodos={appData.apodos} />;
       case 'sueldos':
-        return <Sueldos sueldos={appData.sueldos} />;
+        return <Sueldos sueldos={appData.sueldos} bonos={appData.bonos} />;
       case 'settings':
         return <Settings apodos={appData.apodos} onBack={() => setActiveTab('dashboard')} />;
       default:

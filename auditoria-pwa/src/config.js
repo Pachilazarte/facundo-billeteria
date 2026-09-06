@@ -1,2 +1,2 @@
-export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyUS28XNrJa0pQMCHFVKIEw07J5olUKizHxiCYmLa8lQP-iZ9w3j4AZh1e6jBo5Xzn_/exec";
+export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxlN8arv8wKJ1sESaO6rRqPNTkrhzxM7jkHJJUw5WqpCW_EPk_5ARS-_nA5S-UBKFeS/exec";
 export const API_TOKEN = "facu_gastos_2026";
