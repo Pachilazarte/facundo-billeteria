@@ -19,8 +19,41 @@ function App() {
       try {
         const response = await fetch(`${APPS_SCRIPT_URL}?action=getData`);
         if (!response.ok) throw new Error('Error al conectar con la base de datos');
-        const data = await response.json();
-        setAppData(data);
+        let rawData = await response.json();
+        console.log('DATOS RECIBIDOS DEL SCRIPT:', rawData);
+
+        // Fallback por si la API de GAS sigue en la versión vieja
+        if (rawData.allData && !rawData.gastos) {
+          rawData = {
+            gastos: rawData.allData,
+            pendientes: [],
+            efectivo: [],
+            saldoEfectivo: 0,
+            sueldos: []
+          };
+        }
+
+        // Formatear fechas para que el Dashboard funcione sin importar qué devuelva el backend
+        const mapFechas = (arr) => {
+          if (!arr) return [];
+          return arr.map(item => {
+            if (item.fecha && !item.fechaDisplay) {
+              const d = new Date(item.fecha);
+              if (!isNaN(d.getTime())) {
+                item.fechaDisplay = d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+                item.mesIso = d.toISOString().substring(0, 7);
+              }
+            }
+            return item;
+          });
+        };
+
+        rawData.gastos = mapFechas(rawData.gastos);
+        rawData.pendientes = mapFechas(rawData.pendientes);
+        rawData.efectivo = mapFechas(rawData.efectivo);
+        rawData.sueldos = mapFechas(rawData.sueldos);
+
+        setAppData(rawData);
         setLoadingData(false);
       } catch (err) {
         setDataError(err.message);
