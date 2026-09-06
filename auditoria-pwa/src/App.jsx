@@ -229,6 +229,7 @@ function App() {
           mov={selectedMovement} 
           onClose={() => setSelectedMovement(null)} 
           onSaveApodo={handleSaveApodo}
+          onUpdateCategory={handleUpdateCategory}
           apodos={appData?.apodos || []}
         />
       )}

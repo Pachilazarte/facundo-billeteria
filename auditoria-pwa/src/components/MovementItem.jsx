@@ -38,7 +38,7 @@ function formatearDinero(monto) {
 
 export default function MovementItem({ mov, onCategoryClick, onMovementClick, apodos = [] }) {
   // Parsing and extraction
-  const isIncome = mov.tipo === 'Ingreso' || (mov.monto && mov.monto > 0 && mov.concepto && mov.concepto.toLowerCase().startsWith('ingreso'));
+  const isIncome = mov.categoria === 'Ingreso' || mov.tipo === 'Ingreso' || (mov.monto && mov.monto > 0 && mov.concepto && mov.concepto.toLowerCase().startsWith('ingreso'));
   let amountColor = isIncome ? 'var(--positive)' : 'var(--negative)';
   if (mov.categoria === 'Sin clasificar' || !mov.categoria) amountColor = 'var(--warning)';
 

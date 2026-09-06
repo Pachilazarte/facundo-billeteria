@@ -36,8 +36,8 @@ function formatearDinero(monto) {
   }).format(monto);
 }
 
-export default function MovementDetail({ mov, onClose, onSaveApodo, apodos = [] }) {
-  const isIncome = mov.tipo === 'Ingreso' || (mov.monto && mov.monto > 0 && mov.concepto && mov.concepto.toLowerCase().startsWith('ingreso'));
+export default function MovementDetail({ mov, onClose, onSaveApodo, onUpdateCategory, apodos = [] }) {
+  const isIncome = mov.categoria === 'Ingreso' || mov.tipo === 'Ingreso' || (mov.monto && mov.monto > 0 && mov.concepto && mov.concepto.toLowerCase().startsWith('ingreso'));
   const amountColor = isIncome ? 'var(--positive)' : 'var(--negative)';
   const bgStyle = { backgroundColor: BANK_COLORS[mov.metodo] || 'rgba(255,255,255,0.1)' };
   
@@ -92,9 +92,9 @@ export default function MovementDetail({ mov, onClose, onSaveApodo, apodos = [] 
           borderColor: amountColor, background: `linear-gradient(180deg, rgba(20,20,20,0.8) 0%, rgba(10,10,10,1) 100%)`
         }}>
           <div style={{ 
-            width: '80px', height: '80px', borderRadius: '20px', margin: '0 auto 16px auto',
+            width: '100px', height: '100px', borderRadius: '20px', margin: '0 auto 16px auto',
             display: 'flex', justifyContent: 'center', alignItems: 'center',
-            backgroundColor: imageSrc ? '#fff' : bgStyle.backgroundColor
+            backgroundColor: imageSrc ? 'transparent' : bgStyle.backgroundColor
           }}>
             {imageSrc ? (
               <img src={imageSrc} alt={mov.metodo} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '20px' }} />
@@ -122,15 +122,48 @@ export default function MovementDetail({ mov, onClose, onSaveApodo, apodos = [] 
             <span style={{ color: 'var(--text-muted)' }}>Método / Banco</span>
             <span style={{ fontWeight: 500, color: bgStyle.backgroundColor }}>{mov.metodo}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px', alignItems: 'center' }}>
             <span style={{ color: 'var(--text-muted)' }}>Categoría</span>
-            <span style={{ fontWeight: 500 }} className="badge">{mov.categoria || 'Sin clasificar'}</span>
+            <span 
+              style={{ fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }} 
+              className="badge"
+              onClick={() => {
+                const cat = window.prompt("Elegí una categoría (ej: Supermercado, Transporte, Ingreso):", mov.categoria || "");
+                if (cat && cat !== mov.categoria) {
+                  if (onUpdateCategory) {
+                    onUpdateCategory(mov.id, cat);
+                    // Actualizamos optimísticamente el local del modal
+                    mov.categoria = cat;
+                  }
+                }
+              }}
+            >
+              {mov.categoria || 'Sin clasificar'} ✎
+            </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-muted)' }}>Destino / Origen</span>
             <span style={{ fontWeight: 500, textAlign: 'right' }}>{rawName}</span>
           </div>
         </div>
+
+        {/* Toggle Ingreso */}
+        {!isIncome && (
+          <button 
+            onClick={() => {
+              if (onUpdateCategory) {
+                onUpdateCategory(mov.id, 'Ingreso');
+                onClose();
+              }
+            }}
+            style={{
+              width: '100%', padding: '14px', borderRadius: '12px', background: 'rgba(52, 211, 153, 0.1)',
+              border: '1px solid var(--positive)', color: 'var(--positive)', fontWeight: 600, cursor: 'pointer'
+            }}
+          >
+            Marcar como Ingreso
+          </button>
+        )}
 
         {/* Apodos */}
         {(title === 'Transferencia Enviada' || title === 'Transferencia Recibida') && (

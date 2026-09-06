@@ -76,7 +76,7 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
   // --- CÁLCULO DE SALDO ACUMULADO (TODO EL HISTORIAL) ---
   let saldoDigitalAcumulado = 0;
   allData.forEach(item => {
-    const isIngreso = item.tipo === 'Ingreso' || (item.monto > 0 && item.concepto && item.concepto.toLowerCase().startsWith('ingreso'));
+    const isIngreso = item.categoria === 'Ingreso' || item.tipo === 'Ingreso' || (item.monto > 0 && item.concepto && item.concepto.toLowerCase().startsWith('ingreso'));
     if (isIngreso) saldoDigitalAcumulado += item.monto;
     else saldoDigitalAcumulado -= item.monto;
   });
@@ -113,7 +113,7 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
       pedidosList.push(item);
       return;
     }
-    const isIngreso = item.tipo === 'Ingreso' || (item.monto > 0 && item.concepto && item.concepto.toLowerCase().startsWith('ingreso'));
+    const isIngreso = item.categoria === 'Ingreso' || item.tipo === 'Ingreso' || (item.monto > 0 && item.concepto && item.concepto.toLowerCase().startsWith('ingreso'));
     const monto = item.monto;
     
     if (isIngreso) {
