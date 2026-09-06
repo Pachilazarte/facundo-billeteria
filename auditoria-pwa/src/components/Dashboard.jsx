@@ -32,11 +32,7 @@ function formatearDinero(monto) {
   }).format(monto);
 }
 
-export default function Dashboard() {
-  const [allData, setAllData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
+export default function Dashboard({ allData = [], efectivoData = [], saldoEfectivo = 0 }) {
   const [filters, setFilters] = useState({
     mes: 'ALL', dia: 'ALL', metodo: 'ALL', categoria: 'ALL'
   });
@@ -46,21 +42,10 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=getData`);
-        if (!response.ok) throw new Error('Error al conectar con la base de datos');
-        const data = await response.json();
-        setAllData(data.allData);
-        populateOptions(data.allData);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
+    if (allData.length > 0) {
+      populateOptions(allData);
     }
-    fetchData();
-  }, []);
+  }, [allData]);
 
   const populateOptions = (data) => {
     const m = new Set(), d = new Set(), mt = new Set(), c = new Set();
@@ -77,38 +62,6 @@ export default function Dashboard() {
       categorias: Array.from(c).sort()
     });
   };
-
-  // --- SKELETON LOADER ---
-  if (loading) {
-    return (
-      <div>
-        <header>
-          <h1>Auditoría</h1>
-          <p style={{color: 'var(--text-muted)'}}>Sincronizando gastos...</p>
-        </header>
-        
-        <div className="glass-card">
-          <div className="skeleton skeleton-text" style={{width: '60px', marginBottom: '16px'}}></div>
-          <div className="skeleton skeleton-text" style={{height: '50px', width: '200px'}}></div>
-        </div>
-
-        <div className="glass-card" style={{height: '250px'}}>
-          <div className="skeleton skeleton-text" style={{width: '100px', marginBottom: '24px'}}></div>
-          <div className="skeleton" style={{height: '150px', width: '150px', borderRadius: '50%', margin: '0 auto'}}></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{textAlign: 'center', paddingTop: '40px'}}>
-        <div style={{fontSize: '40px', marginBottom: '16px'}}>⚠️</div>
-        <h2>Oops, algo falló</h2>
-        <p style={{color: 'var(--negative)'}}>{error}</p>
-      </div>
-    );
-  }
 
   // --- MAIN DASHBOARD ---
   const filtered = allData.filter(item => {
@@ -197,10 +150,23 @@ export default function Dashboard() {
             {filterOptions.categorias.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <div className="total-label">Volumen Total</div>
+        <div className="total-label">Gasto Total (Filtros)</div>
         <div className="total-amount" style={{color: total >= 0 ? 'var(--text-main)' : 'var(--negative)'}}>
           {formatearDinero(Math.abs(total))}
         </div>
+      </div>
+
+      {/* EFECTIVO DISPONIBLE */}
+      <div className="glass-card" style={{ borderColor: 'var(--bank-efectivo)' }}>
+        <h2 style={{ color: 'var(--bank-efectivo)', display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontSize: '1.5rem', marginRight: '8px' }}>💵</span> Efectivo Físico
+        </h2>
+        <div className="total-amount" style={{ color: 'var(--text-main)' }}>
+          {formatearDinero(saldoEfectivo)}
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
+          Calculado en base a extracciones y transferencias propias.
+        </p>
       </div>
       
       {/* GRAFICO */}

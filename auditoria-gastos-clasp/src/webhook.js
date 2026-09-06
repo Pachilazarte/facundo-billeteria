@@ -29,13 +29,18 @@ function doPost(e) {
         return responseJson({ error: 'No hay GEMINI_API_KEY configurada en Apps Script' }, 500);
       }
 
-      const prompt = `Analiza este comprobante de pago o transferencia. Extrae los siguientes datos en formato JSON estricto, sin markdown:
+      const prompt = `Analiza la imagen. Puede ser un comprobante de pago/transferencia o una planilla de sueldos semanal. Extrae los datos en formato JSON estricto, sin markdown:
 {
-  "monto": numero,
-  "concepto": "A quien se le pagó o el motivo resumido",
-  "metodo_pago": "El banco o billetera desde donde se hizo el pago, ej: Mercado Pago, BNA, Naranja",
-  "fecha": "Fecha en formato YYYY-MM-DD o null"
-}`;
+  "monto": numero (si es comprobante, el monto pagado. Si es planilla de sueldo, el Total final a cobrar),
+  "concepto": "A quien se le pagó o el motivo resumido. Si es planilla de sueldo, pon 'Liquidación Semanal'",
+  "metodo_pago": "El banco o billetera desde donde se hizo el pago, ej: BNA, Naranja, Personal Pay, BIND. Si es planilla, pon 'Planilla'",
+  "fecha": "Fecha en formato YYYY-MM-DD o null si no se encuentra",
+  "is_own_transfer": booleano,
+  "is_salary": booleano
+}
+Reglas:
+- is_own_transfer debe ser true SI Y SÓLO SI el remitente y el destinatario son la misma persona (ej: "Facundo Maximiliano Lazarte").
+- is_salary debe ser true si la imagen es claramente una tabla o planilla de liquidación de horas/sueldo.`;
 
       const imageParts = [{
         inlineData: {
@@ -44,8 +49,15 @@ function doPost(e) {
         }
       }];
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+      const modelsToTry = [
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash"
+      ];
       
+      let aiResponse;
+      let usedModel = "";
+
       const geminiOptions = {
         method: "post",
         contentType: "application/json",
@@ -57,16 +69,38 @@ function doPost(e) {
         muteHttpExceptions: true
       };
 
-      const aiResponse = UrlFetchApp.fetch(geminiUrl, geminiOptions);
+      for (let model of modelsToTry) {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+        aiResponse = UrlFetchApp.fetch(geminiUrl, geminiOptions);
+        if (aiResponse.getResponseCode() === 200) {
+          usedModel = model;
+          break;
+        }
+      }
+
       if (aiResponse.getResponseCode() !== 200) {
-        return responseJson({ error: 'Fallo la IA: ' + aiResponse.getContentText() }, 500);
+        return responseJson({ error: 'Fallo la IA con todos los modelos: ' + aiResponse.getContentText() }, 500);
       }
 
       const aiData = JSON.parse(aiResponse.getContentText());
       const textResult = aiData.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsedData = JSON.parse(textResult);
 
-      const registro = registrarGasto(parsedData.monto, parsedData.concepto, parsedData.metodo_pago, "pwa_scanner_image");
+      let registro;
+      if (parsedData.is_salary) {
+        // Planilla de sueldo
+        registro = registrarSueldoEsperado(parsedData.monto, aiData.fecha);
+      } else if (parsedData.is_own_transfer) {
+        // Transferencia entre cuentas propias = Movimiento de Efectivo (Extracción/Disponibilidad)
+        registro = registrarMovimientoEfectivo(parsedData.monto, "Ingreso", "Transf. propia de " + parsedData.metodo_pago, payload.origen);
+      } else if (payload.accion === "pendiente") {
+        // El atajo pidió guardarlo para revisar luego
+        registro = registrarPendiente(parsedData.monto, parsedData.concepto, parsedData.metodo_pago, payload.origen);
+      } else {
+        // Gasto normal
+        registro = registrarGasto(parsedData.monto, parsedData.concepto, parsedData.metodo_pago, payload.origen);
+      }
+
       return responseJson({ success: true, data: registro }, 200);
     }
     

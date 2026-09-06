@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       devOptions: { enabled: true },
       manifest: {
-        name: 'Auditoría de Gastos',
-        short_name: 'Auditoría',
+        name: 'Billetería',
+        short_name: 'Billetería',
         description: 'Dashboard y escáner de comprobantes',
         theme_color: '#0f172a',
         background_color: '#0f172a',
@@ -41,7 +41,7 @@ export default defineConfig({
             files: [
               {
                 name: "image",
-                accept: ["image/jpeg", "image/png", "image/webp"]
+                accept: ["image/jpeg", "image/png", "image/webp", "application/pdf"]
               }
             ]
           }
