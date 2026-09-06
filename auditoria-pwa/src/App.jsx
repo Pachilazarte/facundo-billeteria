@@ -59,7 +59,7 @@ function App() {
     }
   }, []);
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+
 
   if (isCheckingShare) {
     return <div className="loader"><div className="spinner"></div><div className="total-label">Cargando...</div></div>;
