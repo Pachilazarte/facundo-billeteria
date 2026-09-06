@@ -1,7 +1,7 @@
 import React from 'react';
 import MovementItem from './MovementItem';
 
-export default function Pendientes({ pendientes = [] }) {
+export default function Pendientes({ pendientes = [], onMovementClick, apodos = [] }) {
   if (pendientes.length === 0) {
     return (
       <div className="glass-card" style={{ textAlign: 'center', padding: '40px 20px', marginTop: '20px' }}>
@@ -21,7 +21,12 @@ export default function Pendientes({ pendientes = [] }) {
 
         <div className="movement-list">
           {pendientes.map((mov, idx) => (
-            <MovementItem key={idx} mov={mov} />
+            <MovementItem 
+              key={idx} 
+              mov={mov} 
+              onMovementClick={onMovementClick}
+              apodos={apodos}
+            />
           ))}
         </div>
       </div>

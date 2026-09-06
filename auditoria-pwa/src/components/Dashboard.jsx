@@ -25,9 +25,12 @@ function formatearDinero(monto) {
   }).format(monto);
 }
 
-export default function Dashboard({ allData = [], efectivoData = [], saldoEfectivo = 0, onUpdateCategory }) {
+export default function Dashboard({ allData = [], efectivoData = [], saldoEfectivo = 0, onUpdateCategory, onMovementClick, apodos = [] }) {
+  // Default to current month ISO (YYYY-MM)
+  const currentMonthIso = new Date().toISOString().substring(0, 7);
+
   const [filters, setFilters] = useState({
-    mes: 'ALL', dia: 'ALL', metodo: 'ALL', categoria: 'ALL'
+    mes: 'ALL', dia: 'ALL', metodo: 'ALL', categoria: 'ALL', search: ''
   });
 
   const [filterOptions, setFilterOptions] = useState({
@@ -37,6 +40,12 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
   useEffect(() => {
     if (allData.length > 0) {
       populateOptions(allData);
+      
+      // Auto-select current month if it exists in data
+      const m = new Set(allData.map(i => i.mesIso));
+      if (m.has(currentMonthIso)) {
+        setFilters(f => ({ ...f, mes: currentMonthIso }));
+      }
     }
   }, [allData]);
 
@@ -64,28 +73,57 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
     }
   };
 
-  // --- MAIN DASHBOARD ---
+  // --- CÁLCULO DE SALDO ACUMULADO (TODO EL HISTORIAL) ---
+  let saldoDigitalAcumulado = 0;
+  allData.forEach(item => {
+    const isIngreso = item.tipo === 'Ingreso' || (item.monto > 0 && item.concepto && item.concepto.toLowerCase().startsWith('ingreso'));
+    if (isIngreso) saldoDigitalAcumulado += item.monto;
+    else saldoDigitalAcumulado -= item.monto;
+  });
+
+  // --- MAIN DASHBOARD (FILTRADO) ---
   const filtered = allData.filter(item => {
-    return (filters.mes === 'ALL' || item.mesIso === filters.mes) &&
+    // Buscar apodo si existe para que aplique en la búsqueda
+    let rawName = item.concepto || '';
+    if (rawName.startsWith('Transf: ')) rawName = rawName.replace('Transf: ', '');
+    else if (rawName.startsWith('Ingreso de: ')) rawName = rawName.replace('Ingreso de: ', '');
+    
+    const apodoMatch = apodos.find(a => a.nombreOriginal.toLowerCase() === rawName.toLowerCase());
+    const aliasText = apodoMatch ? apodoMatch.apodo.toLowerCase() : '';
+    
+    const searchMatch = filters.search === '' || 
+                        (item.concepto || '').toLowerCase().includes(filters.search.toLowerCase()) || 
+                        aliasText.includes(filters.search.toLowerCase());
+
+    return searchMatch &&
+           (filters.mes === 'ALL' || item.mesIso === filters.mes) &&
            (filters.dia === 'ALL' || item.fechaDisplay.startsWith(filters.dia)) &&
            (filters.metodo === 'ALL' || item.metodo === filters.metodo) &&
            (filters.categoria === 'ALL' || item.categoria === filters.categoria);
   });
 
-  let total = 0;
+  let totalIngresos = 0;
+  let totalEgresos = 0;
   const porBanco = {};
   const pedidosList = [];
   const movimientosList = [];
 
   filtered.forEach(item => {
-    if (item.concepto.toLowerCase().includes("pedido de pago") || item.concepto.toLowerCase().includes("próxima cuota")) {
+    if (item.concepto && (item.concepto.toLowerCase().includes("pedido de pago") || item.concepto.toLowerCase().includes("próxima cuota"))) {
       pedidosList.push(item);
       return;
     }
-    const isIngreso = item.concepto.toLowerCase().includes("ingreso") || item.monto > 0 && item.concepto.toLowerCase().startsWith('ingreso');
+    const isIngreso = item.tipo === 'Ingreso' || (item.monto > 0 && item.concepto && item.concepto.toLowerCase().startsWith('ingreso'));
     const monto = item.monto;
-    total += isIngreso ? monto : -monto;
-    if (!isIngreso) porBanco[item.metodo] = (porBanco[item.metodo] || 0) + monto;
+    
+    if (isIngreso) {
+      totalIngresos += monto;
+    } else {
+      totalEgresos += monto;
+      let bk = item.metodo;
+      if (bk === 'Naranja') bk = 'Naranja X'; // Unify Naranja in chart
+      porBanco[bk] = (porBanco[bk] || 0) + monto;
+    }
     movimientosList.push(item);
   });
 
@@ -128,8 +166,33 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
 
   return (
     <div>
-      {/* FILTROS Y TOTAL */}
+      {/* SALDO ACUMULADO */}
+      <div className="glass-card" style={{ borderColor: 'var(--bank-bna)', background: 'linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(15,23,42,0.8) 100%)', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+          Saldo Digital Acumulado
+        </h2>
+        <div style={{ color: saldoDigitalAcumulado >= 0 ? 'var(--text-main)' : 'var(--negative)', fontSize: '2.2rem', fontWeight: 800 }}>
+          {formatearDinero(saldoDigitalAcumulado)}
+        </div>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Balance total de tus bancos y billeteras virtuales a la fecha.</p>
+      </div>
+
+      {/* FILTROS Y GASTOS DEL MES */}
       <div className="glass-card" style={{ padding: '24px 20px', background: 'linear-gradient(145deg, rgba(30,41,59,0.4) 0%, rgba(15,23,42,0.8) 100%)' }}>
+        
+        <div style={{ marginBottom: '16px' }}>
+          <input 
+            type="text" 
+            placeholder="Buscar por nombre, apodo, concepto..." 
+            value={filters.search}
+            onChange={e => setFilters({...filters, search: e.target.value})}
+            style={{
+              width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '0.95rem', boxSizing: 'border-box'
+            }}
+          />
+        </div>
+
         <div className="filters-row">
           <select value={filters.mes} onChange={e => setFilters({...filters, mes: e.target.value})} className="filter-select">
             <option value="ALL">Meses</option>
@@ -144,9 +207,20 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
             {filterOptions.categorias.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <div className="total-label">Gasto Acumulado</div>
-        <div className="total-amount" style={{color: total >= 0 ? 'var(--text-main)' : 'var(--negative)'}}>
-          {formatearDinero(Math.abs(total))}
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ flex: 1, minWidth: '120px' }}>
+            <div className="total-label">Egresos del Periodo</div>
+            <div className="total-amount" style={{color: 'var(--negative)', fontSize: '1.5rem'}}>
+              {formatearDinero(Math.abs(totalEgresos))}
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: '120px' }}>
+            <div className="total-label">Ingresos del Periodo</div>
+            <div className="total-amount" style={{color: 'var(--positive)', fontSize: '1.5rem'}}>
+              {formatearDinero(Math.abs(totalIngresos))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -163,7 +237,7 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
       {/* GRAFICO */}
       {Object.keys(porBanco).length > 0 && (
         <div className="glass-card" style={{height: '240px'}}>
-          <h2 style={{fontSize: '1rem'}}>Distribución</h2>
+          <h2 style={{fontSize: '1rem'}}>Distribución de Egresos</h2>
           <div style={{ height: '180px' }}>
             <Doughnut data={chartData} options={chartOptions} />
           </div>
@@ -188,7 +262,13 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
         <div className="movement-list">
           {movimientosList.length === 0 && <div className="total-label" style={{marginTop: '16px'}}>No hay movimientos.</div>}
           {movimientosList.map((mov, idx) => (
-            <MovementItem key={idx} mov={mov} onCategoryClick={handleCategoryClick} />
+            <MovementItem 
+              key={idx} 
+              mov={mov} 
+              onCategoryClick={handleCategoryClick} 
+              onMovementClick={onMovementClick}
+              apodos={apodos}
+            />
           ))}
         </div>
       </div>

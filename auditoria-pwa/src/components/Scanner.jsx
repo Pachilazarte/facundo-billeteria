@@ -54,44 +54,51 @@ export default function Scanner({ file, onScanComplete, onCancel }) {
   };
 
   return (
-    <div className="glass-card" style={{ textAlign: 'center', marginTop: '20px' }}>
-      <h2 style={{ marginBottom: '16px' }}>Analizar Comprobante</h2>
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+      backgroundColor: '#050505', zIndex: 1000, overflowY: 'auto',
+      display: 'flex', flexDirection: 'column', padding: '20px'
+    }}>
+      <h2 style={{ textAlign: 'center', margin: '20px 0', fontSize: '1.5rem', color: 'var(--positive)' }}>Nuevo Comprobante</h2>
+      <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '24px' }}>
+        Verificá que la imagen sea legible antes de enviarla a la inteligencia artificial.
+      </p>
       
       {preview && (
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '24px' }}>
           <img 
             src={preview} 
             alt="Comprobante" 
             style={{ 
               maxWidth: '100%', 
-              maxHeight: '300px', 
-              borderRadius: '16px',
-              border: '1px solid var(--glass-border)',
-              boxShadow: 'var(--glass-shadow)'
+              maxHeight: '50vh', 
+              borderRadius: '20px',
+              border: '2px solid rgba(52, 211, 153, 0.3)',
+              boxShadow: '0 10px 30px rgba(52, 211, 153, 0.1)'
             }} 
           />
         </div>
       )}
 
       {error && (
-        <div style={{ color: 'var(--negative)', marginBottom: '20px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
+        <div style={{ color: 'var(--negative)', marginBottom: '20px', padding: '16px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', borderLeft: '4px solid var(--negative)' }}>
           {error}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: 'auto', paddingBottom: '20px' }}>
         <button 
           onClick={onCancel}
           disabled={isScanning}
           style={{
-            padding: '12px 24px',
-            background: 'transparent',
-            border: '1px solid var(--text-muted)',
+            flex: 1,
+            padding: '16px',
+            background: 'rgba(255,255,255,0.05)',
+            border: 'none',
             color: 'var(--text-main)',
-            borderRadius: '24px',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-family)',
-            fontWeight: 500
+            borderRadius: '16px',
+            fontSize: '1rem',
+            fontWeight: 600
           }}
         >
           Cancelar
@@ -101,20 +108,27 @@ export default function Scanner({ file, onScanComplete, onCancel }) {
           onClick={handleScan}
           disabled={isScanning}
           style={{
-            padding: '12px 24px',
-            background: 'linear-gradient(135deg, var(--accent-primary) 0%, #d946ef 100%)',
+            flex: 2,
+            padding: '16px',
+            background: 'var(--positive)',
             border: 'none',
-            color: 'white',
-            borderRadius: '24px',
-            cursor: isScanning ? 'not-allowed' : 'pointer',
-            fontWeight: 600,
-            fontFamily: 'var(--font-family)',
-            boxShadow: '0 4px 15px var(--accent-glow)',
+            color: '#000',
+            borderRadius: '16px',
+            fontSize: '1rem',
+            fontWeight: 700,
             opacity: isScanning ? 0.7 : 1,
-            transition: 'transform 0.2s ease'
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '8px'
           }}
         >
-          {isScanning ? 'Analizando con IA...' : 'Analizar y Guardar'}
+          {isScanning ? (
+            <>
+              <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '3px', borderColor: '#000', borderTopColor: 'transparent' }}></div>
+              Analizando...
+            </>
+          ) : 'Procesar Gasto'}
         </button>
       </div>
     </div>

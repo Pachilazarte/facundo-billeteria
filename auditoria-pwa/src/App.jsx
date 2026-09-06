@@ -4,12 +4,15 @@ import Dashboard from './components/Dashboard';
 import Pendientes from './components/Pendientes';
 import Sueldos from './components/Sueldos';
 import { APPS_SCRIPT_URL } from './config';
-import { LayoutDashboard, Clock, Wallet, Plus, Scan } from 'lucide-react';
+import { LayoutDashboard, Clock, Wallet, Plus, Scan, Settings as SettingsIcon } from 'lucide-react';
+import MovementDetail from './components/MovementDetail';
+import Settings from './components/Settings';
 
 function App() {
   const [sharedFile, setSharedFile] = useState(null);
   const [isCheckingShare, setIsCheckingShare] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedMovement, setSelectedMovement] = useState(null);
   
   const [appData, setAppData] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
@@ -24,8 +27,9 @@ function App() {
         
         // Fallback por si la API de GAS sigue en la versión vieja
         if (rawData.allData && !rawData.gastos) {
-          rawData = { gastos: rawData.allData, pendientes: [], efectivo: [], saldoEfectivo: 0, sueldos: [] };
+          rawData = { gastos: rawData.allData, pendientes: [], efectivo: [], saldoEfectivo: 0, sueldos: [], apodos: [] };
         }
+        if (!rawData.apodos) rawData.apodos = [];
 
         const mapFechas = (arr) => {
           if (!arr) return [];
@@ -108,19 +112,51 @@ function App() {
     }
   };
 
+  const handleSaveApodo = async (nombreOriginal, apodo) => {
+    // Actualización optimista local
+    const newApodo = { id: Date.now().toString(), nombreOriginal, apodo };
+    setAppData(prev => {
+      const existing = prev.apodos.find(a => a.nombreOriginal.toLowerCase() === nombreOriginal.toLowerCase());
+      let newApodos;
+      if (existing) {
+        newApodos = prev.apodos.map(a => a.nombreOriginal.toLowerCase() === nombreOriginal.toLowerCase() ? { ...a, apodo } : a);
+      } else {
+        newApodos = [...prev.apodos, newApodo];
+      }
+      return { ...prev, apodos: newApodos };
+    });
+
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          token: "facu_gastos_2026",
+          action: "saveApodo",
+          nombreOriginal: nombreOriginal,
+          apodo: apodo
+        })
+      });
+      setSelectedMovement(null); // Cerramos el modal al guardar
+    } catch(e) {
+      console.error("Error saving apodo", e);
+    }
+  };
+
   const renderTab = () => {
     if (loadingData) return <div className="loader"><div className="spinner"></div><div className="total-label">Cargando datos...</div></div>;
     if (dataError) return <div style={{textAlign: 'center', paddingTop: '40px', color: 'red'}}>Error: {dataError}</div>;
 
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard allData={appData.gastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} onUpdateCategory={handleUpdateCategory} />;
+        return <Dashboard allData={appData.gastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} onUpdateCategory={handleUpdateCategory} onMovementClick={setSelectedMovement} apodos={appData.apodos} />;
       case 'pendientes':
-        return <Pendientes pendientes={appData.pendientes} />;
+        return <Pendientes pendientes={appData.pendientes} onMovementClick={setSelectedMovement} apodos={appData.apodos} />;
       case 'sueldos':
         return <Sueldos sueldos={appData.sueldos} />;
+      case 'settings':
+        return <Settings apodos={appData.apodos} onBack={() => setActiveTab('dashboard')} />;
       default:
-        return <Dashboard allData={appData.gastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} onUpdateCategory={handleUpdateCategory} />;
+        return <Dashboard allData={appData.gastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} onUpdateCategory={handleUpdateCategory} onMovementClick={setSelectedMovement} apodos={appData.apodos} />;
     }
   };
 
@@ -128,7 +164,12 @@ function App() {
     <>
       <div className="header-bar">
         <h1 className="header-title">Billetería</h1>
-        <span className="badge">v0.0.3</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span className="badge">v0.0.4</span>
+          <button style={{ background: 'none', border: 'none', color: 'var(--text-main)' }} onClick={() => setActiveTab('settings')}>
+            <SettingsIcon size={22} />
+          </button>
+        </div>
       </div>
 
       <div className="content-area">
@@ -180,6 +221,16 @@ function App() {
             <span>Sueldos</span>
           </button>
         </nav>
+      )}
+
+      {/* MODAL DE DETALLES */}
+      {selectedMovement && (
+        <MovementDetail 
+          mov={selectedMovement} 
+          onClose={() => setSelectedMovement(null)} 
+          onSaveApodo={handleSaveApodo}
+          apodos={appData?.apodos || []}
+        />
       )}
     </>
   );

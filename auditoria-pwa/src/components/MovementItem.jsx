@@ -36,10 +36,12 @@ function formatearDinero(monto) {
   }).format(monto);
 }
 
-export default function MovementItem({ mov, onCategoryClick }) {
+export default function MovementItem({ mov, onCategoryClick, onMovementClick, apodos = [] }) {
   // Parsing and extraction
   const isIncome = mov.tipo === 'Ingreso' || (mov.monto && mov.monto > 0 && mov.concepto && mov.concepto.toLowerCase().startsWith('ingreso'));
-  const amountColor = isIncome ? 'var(--positive)' : 'var(--text-main)';
+  let amountColor = isIncome ? 'var(--positive)' : 'var(--negative)';
+  if (mov.categoria === 'Sin clasificar' || !mov.categoria) amountColor = 'var(--warning)';
+
   const bgStyle = { backgroundColor: BANK_COLORS[mov.metodo] || 'rgba(255,255,255,0.1)' };
   
   const IconComponent = BANK_ICONS[mov.metodo] || FileText;
@@ -48,17 +50,27 @@ export default function MovementItem({ mov, onCategoryClick }) {
   // Enhance concepts
   let title = mov.concepto || 'Desconocido';
   let subtitle = mov.categoria || mov.origen || '';
+  let rawName = title;
   
   if (title.startsWith('Transf: ')) {
-    subtitle = `Dest: ${title.replace('Transf: ', '')}`;
+    rawName = title.replace('Transf: ', '');
     title = 'Transferencia Enviada';
   } else if (title.startsWith('Ingreso de: ')) {
-    subtitle = `De: ${title.replace('Ingreso de: ', '')}`;
+    rawName = title.replace('Ingreso de: ', '');
     title = 'Transferencia Recibida';
   }
 
+  // Map Alias (Apodo)
+  const apodoMatch = apodos.find(a => a.nombreOriginal.toLowerCase() === rawName.toLowerCase());
+  if (apodoMatch) {
+    rawName = apodoMatch.apodo;
+  }
+
+  if (title === 'Transferencia Enviada') subtitle = `Dest: ${rawName}`;
+  else if (title === 'Transferencia Recibida') subtitle = `De: ${rawName}`;
+
   return (
-    <div className="movement-item">
+    <div className="movement-item" onClick={() => onMovementClick && onMovementClick(mov)}>
       <div className="movement-icon" style={imageSrc ? { backgroundColor: '#fff' } : bgStyle}>
         {imageSrc ? (
           <img src={imageSrc} alt={mov.metodo} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '12px' }} />
