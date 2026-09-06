@@ -71,7 +71,7 @@ export default function MovementItem({ mov, onCategoryClick, onMovementClick, ap
 
   return (
     <div className="movement-item" onClick={() => onMovementClick && onMovementClick(mov)}>
-      <div className="movement-icon" style={imageSrc ? { backgroundColor: '#fff' } : bgStyle}>
+      <div className="movement-icon" style={imageSrc ? { backgroundColor: 'transparent' } : bgStyle}>
         {imageSrc ? (
           <img src={imageSrc} alt={mov.metodo} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '12px' }} />
         ) : (
@@ -81,7 +81,6 @@ export default function MovementItem({ mov, onCategoryClick, onMovementClick, ap
       <div className="movement-details">
         <div className="movement-title">{title}</div>
         <div className="movement-subtitle" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          {mov.metodo && <span style={{ color: bgStyle.backgroundColor, fontWeight: 600 }}>{mov.metodo}</span>}
           {subtitle && (
             <span 
               onClick={(e) => {

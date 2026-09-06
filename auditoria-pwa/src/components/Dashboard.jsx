@@ -13,7 +13,8 @@ const PREDEFINED_CATEGORIES = [
   "Comida / Delivery",
   "Kiosco / Farmacia",
   "Varios",
-  "Ingreso"
+  "Ingreso",
+  "Ignorar"
 ];
 
 function formatearDinero(monto) {
@@ -76,6 +77,7 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
   // --- CÁLCULO DE SALDO ACUMULADO (TODO EL HISTORIAL) ---
   let saldoDigitalAcumulado = 0;
   allData.forEach(item => {
+    if (item.categoria === 'Ignorar' || item.categoria === 'Traspaso') return;
     const isIngreso = item.categoria === 'Ingreso' || item.tipo === 'Ingreso' || (item.monto > 0 && item.concepto && item.concepto.toLowerCase().startsWith('ingreso'));
     if (isIngreso) saldoDigitalAcumulado += item.monto;
     else saldoDigitalAcumulado -= item.monto;
@@ -113,6 +115,11 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
       pedidosList.push(item);
       return;
     }
+    
+    movimientosList.push(item);
+    
+    if (item.categoria === 'Ignorar' || item.categoria === 'Traspaso') return;
+
     const isIngreso = item.categoria === 'Ingreso' || item.tipo === 'Ingreso' || (item.monto > 0 && item.concepto && item.concepto.toLowerCase().startsWith('ingreso'));
     const monto = item.monto;
     
@@ -124,7 +131,6 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
       if (bk === 'Naranja') bk = 'Naranja X'; // Unify Naranja in chart
       porBanco[bk] = (porBanco[bk] || 0) + monto;
     }
-    movimientosList.push(item);
   });
 
   const chartData = {
@@ -234,15 +240,7 @@ export default function Dashboard({ allData = [], efectivoData = [], saldoEfecti
         </div>
       </div>
       
-      {/* GRAFICO */}
-      {Object.keys(porBanco).length > 0 && (
-        <div className="glass-card" style={{height: '240px'}}>
-          <h2 style={{fontSize: '1rem'}}>Distribución de Egresos</h2>
-          <div style={{ height: '180px' }}>
-            <Doughnut data={chartData} options={chartOptions} />
-          </div>
-        </div>
-      )}
+      {/* ELIMINADO EL GRÁFICO A PETICIÓN */}
 
       {/* PEDIDOS */}
       {pedidosList.length > 0 && (

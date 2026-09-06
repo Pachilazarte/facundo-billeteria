@@ -124,22 +124,32 @@ export default function MovementDetail({ mov, onClose, onSaveApodo, onUpdateCate
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px', alignItems: 'center' }}>
             <span style={{ color: 'var(--text-muted)' }}>Categoría</span>
-            <span 
-              style={{ fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }} 
-              className="badge"
-              onClick={() => {
-                const cat = window.prompt("Elegí una categoría (ej: Supermercado, Transporte, Ingreso):", mov.categoria || "");
-                if (cat && cat !== mov.categoria) {
-                  if (onUpdateCategory) {
-                    onUpdateCategory(mov.id, cat);
-                    // Actualizamos optimísticamente el local del modal
-                    mov.categoria = cat;
-                  }
+            <select
+              value={mov.categoria || ''}
+              onChange={(e) => {
+                const cat = e.target.value;
+                if (onUpdateCategory && cat !== mov.categoria) {
+                  onUpdateCategory(mov.id, cat);
+                  mov.categoria = cat;
                 }
               }}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                color: '#fff',
+                border: 'none',
+                padding: '4px 8px',
+                borderRadius: '8px',
+                fontWeight: 500,
+                fontSize: '0.85rem',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
             >
-              {mov.categoria || 'Sin clasificar'} ✎
-            </span>
+              <option value="" disabled style={{ color: '#000' }}>Sin clasificar</option>
+              {["Supermercado", "Suscripciones", "Transporte", "Comida / Delivery", "Kiosco / Farmacia", "Varios", "Ingreso", "Ignorar"].map(c => (
+                <option key={c} value={c} style={{ color: '#000' }}>{c}</option>
+              ))}
+            </select>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-muted)' }}>Destino / Origen</span>

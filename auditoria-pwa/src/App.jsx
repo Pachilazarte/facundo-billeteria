@@ -146,17 +146,24 @@ function App() {
     if (loadingData) return <div className="loader"><div className="spinner"></div><div className="total-label">Cargando datos...</div></div>;
     if (dataError) return <div style={{textAlign: 'center', paddingTop: '40px', color: 'red'}}>Error: {dataError}</div>;
 
+    // Separar los gastos que ya tienen categoría de los que no
+    const categorizedGastos = (appData.gastos || []).filter(g => g.categoria && g.categoria !== 'Sin clasificar');
+    const uncategorizedGastos = (appData.gastos || []).filter(g => !g.categoria || g.categoria === 'Sin clasificar');
+    
+    // Combinar pendientes reales con los gastos sin clasificar
+    const allPendientes = [...(appData.pendientes || []), ...uncategorizedGastos];
+
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard allData={appData.gastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} onUpdateCategory={handleUpdateCategory} onMovementClick={setSelectedMovement} apodos={appData.apodos} />;
+        return <Dashboard allData={categorizedGastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} onUpdateCategory={handleUpdateCategory} onMovementClick={setSelectedMovement} apodos={appData.apodos} />;
       case 'pendientes':
-        return <Pendientes pendientes={appData.pendientes} onMovementClick={setSelectedMovement} apodos={appData.apodos} />;
+        return <Pendientes pendientes={allPendientes} onMovementClick={setSelectedMovement} apodos={appData.apodos} />;
       case 'sueldos':
         return <Sueldos sueldos={appData.sueldos} />;
       case 'settings':
         return <Settings apodos={appData.apodos} onBack={() => setActiveTab('dashboard')} />;
       default:
-        return <Dashboard allData={appData.gastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} onUpdateCategory={handleUpdateCategory} onMovementClick={setSelectedMovement} apodos={appData.apodos} />;
+        return <Dashboard allData={categorizedGastos} efectivoData={appData.efectivo} saldoEfectivo={appData.saldoEfectivo} onUpdateCategory={handleUpdateCategory} onMovementClick={setSelectedMovement} apodos={appData.apodos} />;
     }
   };
 
@@ -199,10 +206,9 @@ function App() {
             <span>Pendientes</span>
           </button>
           
-          <div className="nav-fab-wrap">
-            <label className="nav-fab" htmlFor="manual-scan" title="Escanear Gasto">
-              <Scan size={24} color="#000" />
-            </label>
+          <label className="nav-btn" htmlFor="manual-scan" style={{ cursor: 'pointer' }}>
+            <Scan size={22} />
+            <span>Escanear</span>
             <input 
               type="file" 
               id="manual-scan" 
@@ -214,7 +220,7 @@ function App() {
                 }
               }} 
             />
-          </div>
+          </label>
 
           <button className={`nav-btn ${activeTab === 'sueldos' ? 'active' : ''}`} onClick={() => setActiveTab('sueldos')}>
             <Wallet size={22} />
