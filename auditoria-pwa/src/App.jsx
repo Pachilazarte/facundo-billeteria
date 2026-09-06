@@ -85,6 +85,7 @@ function App() {
     <div className="container" style={{ paddingBottom: '80px' }}>
       <header>
         <h1>Billetería</h1>
+        <span style={{ fontSize: '0.75rem', backgroundColor: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '12px', color: 'var(--text-muted)' }}>v0.0.2</span>
       </header>
 
       {sharedFile ? (
